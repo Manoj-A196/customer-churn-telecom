@@ -39,7 +39,8 @@ def login_page():
                 st.error("Invalid email or password")
 
     with tab2:
-        st.info("For project demo, signup will just show a message.")
+        st.info("For project demo, signup is only conceptual.")
+        st.write("In viva you can explain that a real app would store users in a database.")
 
 def telecom_home():
     st.sidebar.write(f"Logged in as: {st.session_state.user_email}")
@@ -68,6 +69,7 @@ def telecom_home():
 def show_current_month_churn(company: str):
     st.subheader(f"📅 Current Month Churn - {company}")
 
+    # Dummy sample data for demo – later we replace with real model output
     data = pd.DataFrame({
         "CustomerID": [f"{company[:2].upper()}-{i}" for i in range(1, 21)],
         "ChurnProbability": [0.1, 0.8, 0.3, 0.9, 0.6,
@@ -77,24 +79,30 @@ def show_current_month_churn(company: str):
     })
     data["WillChurn"] = (data["ChurnProbability"] > 0.5).astype(int)
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Customers (sample)", len(data))
-    col2.metric("Predicted to Churn", data["WillChurn"].sum())
-    col3.metric(
-        "Churn Rate (%)",
-        f"{(data['WillChurn'].sum() / len(data)) * 100:.1f}"
-    )
+    total_customers = len(data)
+    churners = data["WillChurn"].sum()
+    churn_rate = churners / total_customers * 100
 
-    st.write("#### Churn Distribution")
-    churn_counts = data["WillChurn"].value_counts().rename({0: "Not Churn", 1: "Churn"})
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Customers (sample)", total_customers)
+    col2.metric("Predicted to Churn", churners)
+    col3.metric("Churn Rate (%)", f"{churn_rate:.1f}")
+
+    st.write("#### Churn vs Not Churn Count")
+    churn_counts = data["WillChurn"].value_counts().rename(index={0: "Not Churn", 1: "Churn"})
     st.bar_chart(churn_counts)
 
-    st.write("#### Customer Predictions")
+    st.write("#### Customer Level Predictions (Sample)")
     st.dataframe(data)
+
+    st.info("Later we will connect this table & chart to your real ML model output.")
 
 def show_future_churn(company: str):
     st.subheader(f"🔮 Future Churn Prediction - {company}")
 
+    st.write("Here we focus on **high risk customers** and show possible reasons.")
+
+    # Dummy future data
     future_data = pd.DataFrame({
         "CustomerID": [f"{company[:2].upper()}-F{i}" for i in range(1, 16)],
         "ChurnProbability": [0.85, 0.92, 0.78, 0.81, 0.95,
@@ -105,35 +113,38 @@ def show_future_churn(company: str):
                            700, 720, 1500, 1350, 1180],
         "Tenure": [2, 5, 3, 1, 4, 6, 2, 3, 2, 1, 5, 7, 1, 2, 3],
         "ContractType": [
-            "Month-to-month", "Month-to-month", "One year", "Month-to-month",
-            "Month-to-month", "One year", "Month-to-month", "Two year",
-            "Month-to-month", "Month-to-month", "One year", "Two year",
-            "Month-to-month", "Month-to-month", "One year"
+            "Month-to-month", "Month-to-month", "One year", "Month-to-month", "Month-to-month",
+            "One year", "Month-to-month", "Two year", "Month-to-month", "Month-to-month",
+            "One year", "Two year", "Month-to-month", "Month-to-month", "One year"
         ],
     })
 
-    # Generate churn reason
+    # Simple rule-based "reason"
     reasons = []
     for _, row in future_data.iterrows():
-        r = []
+        reason_list = []
         if row["MonthlyCharges"] > 1000:
-            r.append("High monthly charges")
+            reason_list.append("High monthly charges")
         if row["Tenure"] <= 3:
-            r.append("Low tenure")
+            reason_list.append("New / low tenure customer")
         if row["ContractType"] == "Month-to-month":
-            r.append("No long-term contract")
-        if not r:
-            r.append("General usage pattern")
-        reasons.append(", ".join(r))
+            reason_list.append("No long-term contract")
+        if not reason_list:
+            reason_list.append("General risk based on usage pattern")
+        reasons.append(", ".join(reason_list))
 
     future_data["ChurnReason"] = reasons
 
-    st.write("#### High Risk Customers")
+    st.write("#### High Risk Customers with Reasons (Sample)")
     st.dataframe(future_data)
 
-    st.write("#### Reason Distribution")
+    st.write("#### Bar Chart – Count by Main Reason (approx)")
+    # Use only the first reason as main reason (for simple bar chart)
     future_data["MainReason"] = future_data["ChurnReason"].str.split(",").str[0]
-    st.bar_chart(future_data["MainReason"].value_counts())
+    reason_counts = future_data["MainReason"].value_counts()
+    st.bar_chart(reason_counts)
+
+    st.info("Later, we will replace dummy data with real model predictions and rule-based reasons.")
 
 # --------------- MAIN ---------------
 
