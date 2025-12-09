@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import altair as alt
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Telecom Churn Portal", layout="wide")
@@ -25,6 +26,28 @@ def init_session_state():
         st.session_state.page = "login"
     if "selected_company" not in st.session_state:
         st.session_state.selected_company = None
+
+
+# ---------------- HELPER: NICE BAR CHART ----------------
+def reason_bar_chart(series: pd.Series, title: str):
+    """Create a clean horizontal bar chart for reason distribution."""
+    df = series.value_counts().reset_index()
+    df.columns = ["Reason", "Count"]
+
+    chart = (
+        alt.Chart(df)
+        .mark_bar()
+        .encode(
+            x=alt.X("Count:Q", title="Number of Customers"),
+            y=alt.Y("Reason:N", sort="-x", title="Churn Reason"),
+            tooltip=["Reason", "Count"],
+        )
+        .properties(
+            title=title,
+            height=300,
+        )
+    )
+    st.altair_chart(chart, use_container_width=True)
 
 
 # ---------------- PAGES ----------------
@@ -140,11 +163,11 @@ def current_month_page():
     high_risk = data[data["WillChurn"] == 1]
 
     st.write("#### High-Risk Customers — Current Month (50 sample)")
-    st.dataframe(high_risk)
+    st.dataframe(high_risk, use_container_width=True)
 
     st.write("#### Reason Distribution (Main Reason)")
     data["MainReason"] = data["ChurnReason"].str.split(",").str[0]
-    st.bar_chart(data["MainReason"].value_counts())
+    reason_bar_chart(data["MainReason"], "Current Month – Churn Reason Distribution")
 
     st.markdown("---")
     col_back, col_next = st.columns(2)
@@ -209,11 +232,14 @@ def future_churn_page():
     future_data["ChurnReason"] = reasons
 
     st.write("#### High-Risk Customers — Future (50 sample)")
-    st.dataframe(future_data)
+    st.dataframe(future_data, use_container_width=True)
 
     st.write("#### Reason Distribution (Main Reason)")
     future_data["MainReason"] = future_data["ChurnReason"].str.split(",").str[0]
-    st.bar_chart(future_data["MainReason"].value_counts())
+    reason_bar_chart(
+        future_data["MainReason"],
+        "Future Period – Churn Reason Distribution",
+    )
 
     st.markdown("---")
     col_back, col_home = st.columns(2)
