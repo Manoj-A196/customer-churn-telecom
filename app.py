@@ -92,7 +92,7 @@ def current_month_page():
         st.session_state.page = "login"
         st.rerun()
 
-    st.title(f"Current Month Churn - {company}")
+    st.title(f"📅 Current Month Churn - {company}")
     st.caption("Step 2: View current month high-risk customers and churn reasons.")
 
     # ----- dummy current month data (to be replaced with real model later) -----
