@@ -4,6 +4,7 @@ import pandas as pd
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Telecom Churn Portal", layout="wide")
 
+# Demo users
 USERS = {
     "admin@example.com": "1234",
     "manager@example.com": "manager",
@@ -46,7 +47,7 @@ def login_page():
                 st.error("Invalid email or password")
 
     with tab2:
-        st.info("Signup is only conceptual. In viva, explain DB storage etc.")
+        st.info("Signup is only a demo. In a real system, we’d store users in a database.")
 
 
 def company_select_page():
@@ -92,39 +93,72 @@ def current_month_page():
         st.rerun()
 
     st.title(f"📅 Current Month Churn - {company}")
-    st.caption("Step 2: View current month churn risk for the selected company.")
+    st.caption("Step 2: View current month high-risk customers and churn reasons.")
 
-    # ----- dummy data (we will replace with real model later) -----
+    # ----- dummy current month data (to be replaced with real model later) -----
     data = pd.DataFrame({
-        "CustomerID": [f"{company[:2].upper()}-{i}" for i in range(1, 21)],
+        "CustomerID": [f"{company[:2].upper()}-C{i}" for i in range(1, 21)],
         "ChurnProbability": [
-            0.1, 0.8, 0.3, 0.9, 0.6,
-            0.2, 0.7, 0.4, 0.55, 0.95,
-            0.12, 0.33, 0.76, 0.88, 0.5,
-            0.67, 0.44, 0.29, 0.99, 0.18,
+            0.35, 0.82, 0.41, 0.76, 0.58,
+            0.22, 0.67, 0.48, 0.91, 0.63,
+            0.29, 0.54, 0.79, 0.87, 0.32,
+            0.69, 0.44, 0.27, 0.96, 0.51,
+        ],
+        "MonthlyCharges": [
+            650, 1200, 800, 1100, 950,
+            700, 1250, 730, 1350, 1000,
+            680, 720, 1450, 1300, 760,
+            1150, 820, 690, 1500, 980,
+        ],
+        "Tenure": [6, 2, 8, 3, 4, 10, 2, 7, 1, 5, 9, 6, 2, 3, 8, 4, 5, 7, 1, 6],
+        "ContractType": [
+            "One year", "Month-to-month", "Two year", "Month-to-month",
+            "Month-to-month", "One year", "Month-to-month", "Two year",
+            "Month-to-month", "Month-to-month", "One year", "Two year",
+            "Month-to-month", "Month-to-month", "One year", "Month-to-month",
+            "Two year", "One year", "Month-to-month", "Month-to-month",
         ],
     })
+
+    # classify churn / not churn
     data["WillChurn"] = (data["ChurnProbability"] > 0.5).astype(int)
 
+    # simple metrics
     total_customers = len(data)
     churners = data["WillChurn"].sum()
     churn_rate = churners / total_customers * 100
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Customers (sample)", total_customers)
-    col2.metric("Predicted to Churn", churners)
+    col2.metric("Predicted to Churn (current month)", churners)
     col3.metric("Churn Rate (%)", f"{churn_rate:.1f}")
 
-    st.write("#### Churn vs Not Churn Count")
-    churn_counts = data["WillChurn"].value_counts().rename(
-        index={0: "Not Churn", 1: "Churn"}
-    )
-    st.bar_chart(churn_counts)
+    # generate churn reasons (same style as future page)
+    reasons = []
+    for _, row in data.iterrows():
+        r = []
+        if row["MonthlyCharges"] > 1000:
+            r.append("High monthly charges")
+        if row["Tenure"] <= 3:
+            r.append("Low tenure")
+        if row["ContractType"] == "Month-to-month":
+            r.append("No long-term contract")
+        if not r:
+            r.append("General usage pattern")
+        reasons.append(", ".join(r))
 
-    st.write("#### Customer Level Predictions (Sample)")
-    st.dataframe(data)
+    data["ChurnReason"] = reasons
 
-    st.info("Later this will be replaced with predictions from your ML model.")
+    # show only high-risk customers in table
+    high_risk = data[data["WillChurn"] == 1]
+
+    st.write("#### High-Risk Customers – Current Month")
+    st.dataframe(high_risk)
+
+    st.write("#### Reason Distribution (Main Reason)")
+    data["MainReason"] = data["ChurnReason"].str.split(",").str[0]
+    reason_counts = data["MainReason"].value_counts()
+    st.bar_chart(reason_counts)
 
     st.markdown("---")
     col_back, col_next = st.columns(2)
@@ -156,9 +190,9 @@ def future_churn_page():
         st.rerun()
 
     st.title(f"🔮 Future Churn Prediction - {company}")
-    st.caption("Step 3: View high-risk customers and churn reasons.")
+    st.caption("Step 3: View high-risk customers and churn reasons for upcoming period.")
 
-    # ----- dummy data (to be replaced with real predictions) -----
+    # ----- dummy future data (to be replaced with real predictions) -----
     future_data = pd.DataFrame({
         "CustomerID": [f"{company[:2].upper()}-F{i}" for i in range(1, 16)],
         "ChurnProbability": [
@@ -200,7 +234,8 @@ def future_churn_page():
 
     st.write("#### Reason Distribution (Main Reason)")
     future_data["MainReason"] = future_data["ChurnReason"].str.split(",").str[0]
-    st.bar_chart(future_data["MainReason"].value_counts())
+    reason_counts = future_data["MainReason"].value_counts()
+    st.bar_chart(reason_counts)
 
     st.markdown("---")
     col_back, col_home = st.columns(2)
@@ -228,7 +263,6 @@ def main():
         elif st.session_state.page == "future_churn":
             future_churn_page()
         else:
-            # fallback
             st.session_state.page = "company_select"
             company_select_page()
 
